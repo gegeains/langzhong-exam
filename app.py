@@ -238,7 +238,49 @@ def export_customer():
     df.to_excel(save_name,index=False)
     conn.close()
     return f'导出成功，共{len(df)}位意向家长，文件：{save_name}'
+# =========后台admin 账号yangyan 密码131452wjc========
+from flask import session,redirect,url_for
 
+@app.route('/admin',methods=["GET","POST"])
+def admin_login():
+    if session.get("admin_ok"):
+        return admin_home()
+    if request.method=="POST":
+        u = request.form["username"]
+        p = request.form["password"]
+        if u == "yangyan" and p == "131452wjc":
+            session["admin_ok"]=True
+            return redirect(url_for("admin_home"))
+        return '''
+        <form method="post">
+        账号错误<br>
+        账号:<input name=username><br>
+        密码:<input type=password name=password><button>登录</button>
+        </form>
+        '''
+    return '''
+    <form method="post">
+    <h3>管理员登录</h3>
+    账号:<input name="username"><br>
+    密码:<input type="password" name="password"><br>
+    <button>登录后台</button>
+    </form>
+    '''
+
+@app.route("/admin/home")
+def admin_home():
+    if not session.get("admin_ok"):
+        return redirect(url_for("admin_login"))
+    return '''
+    <h3>家长数据后台</h3>
+    <a href="/export">点击导出全部家长Excel</a>
+    <br><a href="/admin/logout">退出登录</a>
+    '''
+
+@app.route("/admin/logout")
+def logout():
+    session.pop("admin_ok",None)
+    return redirect(url_for("admin_login"))
 if __name__ == '__main__':
     port = int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0",port=port,debug=False)
