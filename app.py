@@ -240,9 +240,9 @@ def submit_paper():
     conn.close()
     return render_template_string(REPORT_HTML,phone=phone,score=score,wrong_know=wrong_str,suggest=suggest,ex_list=ex_data)
 
+#【export接口代码原样保留不动，只是后台页面删掉导出按钮】
 @app.route('/export')
 def export_customer():
-    # 禁止直接访问导出，必须后台登录后才能导出
     if not session.get("admin_login_ok"):
         return redirect(url_for("admin_login"))
     conn = sqlite3.connect(DB_NAME)
@@ -257,6 +257,7 @@ def export_customer():
     conn.close()
     return f'导出成功，共{len(df)}位意向家长，文件：{save_name}'
 
+#=================管理员后台=================
 @app.route("/admin",methods=["GET","POST"])
 def admin_login():
     if session.get("admin_login_ok"):
@@ -287,15 +288,50 @@ def admin_login():
     </form>
     '''
 
+#=====【只修改此处：去掉导出按钮，改为网页表格展示全部家长数据】=====
 @app.route("/admin/index")
 def admin_index():
     if not session.get("admin_login_ok"):
         return redirect(url_for("admin_login"))
-    return '''
-    <h2>家长信息数据管理后台</h2>
-    <p><a href="/export">👉一键导出全部家长Excel数据</a></p>
-    <p><a href="/admin/logout">退出登录</a></p>
+    conn = sqlite3.connect(DB_NAME)
+    sql = '''
+    SELECT u.phone,u.grade,u.weak_sub,r.score,r.wrong_know,r.suggest,u.createtime
+    FROM user u LEFT JOIN report r ON u.phone=r.phone
+    WHERE u.grade IN ("六年级","初三") AND u.weak_sub != ""
     '''
+    df = pd.read_sql(sql,conn)
+    conn.close()
+    html = '''
+    <h2>家长意向信息管理后台</h2>
+    <p><a href="/admin/logout">退出登录</a></p>
+    <table border="1" cellpadding="6" cellspacing="0">
+    <tr style="background:#eee;">
+    <th>家长手机号</th>
+    <th>就读年级</th>
+    <th>薄弱科目</th>
+    <th>测评得分</th>
+    <th>薄弱知识点</th>
+    <th>学习辅导建议</th>
+    <th>提交登记时间</th>
+    </tr>
+    '''
+    for _,row in df.iterrows():
+        score_text = str(row["score"]) if row["score"] is not None else "未完成答题"
+        wrong_text = row["wrong_know"] if row["wrong_know"] is not None else "无"
+        sug_text = row["suggest"] if row["suggest"] is not None else "无"
+        html += f'''
+        <tr>
+        <td>{row["phone"]}</td>
+        <td>{row["grade"]}</td>
+        <td>{row["weak_sub"]}</td>
+        <td>{score_text}</td>
+        <td>{wrong_text}</td>
+        <td>{sug_text}</td>
+        <td>{row["createtime"]}</td>
+        </tr>
+        '''
+    html += "</table>"
+    return html
 
 @app.route("/admin/logout")
 def admin_logout():
