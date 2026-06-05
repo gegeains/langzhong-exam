@@ -2,7 +2,6 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 import sqlite3
 import time
 import pandas as pd
-from pyngrok import ngrok
 import os
 
 app = Flask(__name__)
@@ -258,7 +257,6 @@ def export_customer():
     conn.close()
     return f'导出成功，共{len(df)}位意向家长，文件：{save_name}'
 
-#=================新增管理员后台 固定账号yangyan 密码131452wjc=================
 @app.route("/admin",methods=["GET","POST"])
 def admin_login():
     if session.get("admin_login_ok"):
@@ -305,10 +303,5 @@ def admin_logout():
     return redirect(url_for("admin_login"))
 
 if __name__ == '__main__':
-    ngrok.set_auth_token("3EiTSsFnwnJ7j6blW5I7aIH6BPx_6gzru49p7q6ENDCQpihHj")
-    public_url = ngrok.connect(5000).public_url
-    print("====================测评外网链接====================")
-    print(f'家长手机测评地址：{public_url}')
-    print(f'后台登录地址：{public_url}/admin')
-    print("====================================================")
-    app.run(host="127.0.0.1",port=5000,debug=False)
+    port = int(os.environ.get("PORT",5000))
+    app.run(host="0.0.0.0",port=port,debug=False)
